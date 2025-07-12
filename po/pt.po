@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Pardus Parental Control\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2025-03-21 15:05+0300\n"
-"PO-Revision-Date: 2025-02-09 18:47+0000\n"
+"PO-Revision-Date: 2025-07-12 17:43+0100\n"
 "Last-Translator: Hugo Carvalho <hugokarvalho@hotmail.com>\n"
 "Language-Team: Portuguese\n"
 "Language: pt\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 3.0.1\n"
+"X-Generator: Poedit 3.6\n"
 
 #: src/ui/MainWindow.py:61 src/ui/MainWindow.py:94
 msgid "Pardus Parental Control"
@@ -68,9 +68,8 @@ msgstr "O seu tempo de sessão terminou."
 #: src/ui/page/PageApplications.py:76 src/ui/page/PageApplications.py:163
 #: src/ui/page/PageSessionTime.py:65 src/ui/page/PageSessionTime.py:131
 #: src/ui/page/PageWebsites.py:75 src/ui/page/PageWebsites.py:173
-#, fuzzy
 msgid "Active"
-msgstr "Ativar"
+msgstr "Activo"
 
 #: src/ui/page/PageApplications.py:76 src/ui/page/PageApplications.py:163
 #: src/ui/page/PageSessionTime.py:65 src/ui/page/PageSessionTime.py:131
@@ -116,17 +115,16 @@ msgstr "Selecionar um utilizador para iniciar"
 
 #: src/ui/page/PageSessionTime.py:58
 msgid "Weekends"
-msgstr ""
+msgstr "Fins de semana"
 
 #: src/ui/page/PageSessionTime.py:58
 msgid "Weekdays"
-msgstr ""
+msgstr "Dias da semana"
 
 #: src/ui/page/PageSessionTime.py:59
-#, fuzzy
 msgid "Select the time range of the computer can be used on {}."
 msgstr ""
-"Selecionar o momento em que o utilizador já não pode utilizar o computador."
+"Selecionar o intervalo de tempo em que o computador pode ser utilizado em {}."
 
 #: src/ui/page/PageSessionTime.py:97
 msgid "Start Time"

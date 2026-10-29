@@ -4,10 +4,19 @@ import os
 from pathlib import Path
 
 
-CHROME_POLICY_PATH = Path("/etc/opt/chrome/policies/managed/policies.json")
-BRAVE_POLICY_PATH = Path("/etc/brave/policies/managed/policies.json")
-CHROMIUM_POLICY_PATH = Path("/etc/chromium/policies/managed/policies.json")
-CHROMIUM2_POLICY_PATH = Path("/etc/chromium-browser/policies/managed/policies.json")
+# Chromium based browsers read every json file in the managed directory, so we
+# keep our own file and don't touch policies set by the system administrator.
+CHROMIUM_POLICY_DIRS = [
+    Path("/etc/opt/chrome/policies/managed"),
+    Path("/etc/brave/policies/managed"),
+    Path("/etc/chromium/policies/managed"),
+    Path("/etc/chromium-browser/policies/managed"),
+]
+CHROMIUM_POLICY_FILENAME = "pardus-parental-control.json"
+# Older versions wrote to this file
+CHROMIUM_LEGACY_POLICY_FILENAME = "policies.json"
+
+# Firefox only reads a single policies.json, our keys are merged into it.
 FIREFOX_POLICY_PATH = Path("/usr/share/firefox-esr/distribution/policies.json")
 
 CHROME_POLICY_JSON = {
@@ -69,6 +78,14 @@ def _generate_firefox_policy(domain_list, is_allowlist):
     return obj
 
 
+def _load_browser_policy(browser_config_path: Path):
+    try:
+        with open(browser_config_path, "r") as file1:
+            return json.load(file1)
+    except (OSError, ValueError):
+        return None
+
+
 def _save_browser_policy(browser_config_path: Path, policy_json_object):
     if not browser_config_path.exists():
         browser_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -93,19 +110,44 @@ def create_browser_config(domain_list, is_allowlist):
     firefox_policy = _generate_firefox_policy(domain_list, is_allowlist)
 
     # Save for all browsers
-    _save_browser_policy(CHROME_POLICY_PATH, chromium_policy)
-    _save_browser_policy(BRAVE_POLICY_PATH, chromium_policy)
-    _save_browser_policy(CHROMIUM_POLICY_PATH, chromium_policy)
-    _save_browser_policy(CHROMIUM2_POLICY_PATH, chromium_policy)
-    _save_browser_policy(FIREFOX_POLICY_PATH, firefox_policy)
+    for policy_dir in CHROMIUM_POLICY_DIRS:
+        _remove_legacy_chromium_policy(policy_dir)
+        _save_browser_policy(policy_dir / CHROMIUM_POLICY_FILENAME, chromium_policy)
+
+    # Keep the other Firefox policies, only replace our keys
+    existing = _load_browser_policy(FIREFOX_POLICY_PATH)
+    if not isinstance(existing, dict):
+        existing = {}
+    existing.setdefault("policies", {}).update(firefox_policy["policies"])
+    _save_browser_policy(FIREFOX_POLICY_PATH, existing)
 
 
 def remove_browser_config():
-    _remove_file_if_exists(CHROME_POLICY_PATH)
-    _remove_file_if_exists(BRAVE_POLICY_PATH)
-    _remove_file_if_exists(CHROMIUM_POLICY_PATH)
-    _remove_file_if_exists(CHROMIUM2_POLICY_PATH)
-    _remove_file_if_exists(FIREFOX_POLICY_PATH)
+    for policy_dir in CHROMIUM_POLICY_DIRS:
+        _remove_legacy_chromium_policy(policy_dir)
+        _remove_file_if_exists(policy_dir / CHROMIUM_POLICY_FILENAME)
+
+    existing = _load_browser_policy(FIREFOX_POLICY_PATH)
+    if not isinstance(existing, dict):
+        _remove_file_if_exists(FIREFOX_POLICY_PATH)
+        return
+
+    policies = existing.get("policies", {})
+    for key in FIREFOX_POLICY_JSON["policies"]:
+        policies.pop(key, None)
+
+    if policies or len(existing) > 1:
+        _save_browser_policy(FIREFOX_POLICY_PATH, existing)
+    else:
+        _remove_file_if_exists(FIREFOX_POLICY_PATH)
+
+
+def _remove_legacy_chromium_policy(policy_dir):
+    # Only remove the old file if it has nothing but our own keys
+    legacy_path = policy_dir / CHROMIUM_LEGACY_POLICY_FILENAME
+    legacy = _load_browser_policy(legacy_path)
+    if isinstance(legacy, dict) and legacy and set(legacy) <= set(CHROME_POLICY_JSON):
+        _remove_file_if_exists(legacy_path)
 
 
 def _remove_file_if_exists(path):

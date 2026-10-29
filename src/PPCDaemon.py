@@ -93,6 +93,7 @@ class UsageInfo:
     def __init__(self, uid):
         self.uid = uid
         self.minutes = 0
+        self.day = SessionTimeManager.now().date()
 
 
 class PPCDaemon:
@@ -423,6 +424,16 @@ class PPCDaemon:
 
         for username in list(self.usage):
             usage = self.usage[username]
+
+            # The daily limit only counts sessions that started today. Start a
+            # new log line after midnight, otherwise a session left open from
+            # the day before is never counted for the new day.
+            today = SessionTimeManager.now().date()
+            if usage.day != today:
+                UsageLogger.save_login_timestamp(username)
+                usage.minutes = 0
+                usage.day = today
+
             usage.minutes += 1
             UsageLogger.set_minutes_of_last_session(username, usage.minutes)
 

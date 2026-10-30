@@ -33,6 +33,14 @@ def set_resolvconf_to_localhost():
     subprocess.run(["chattr", "+i", "/etc/resolv.conf"])  # block file
 
 
+def resolvconf_is_ours():
+    try:
+        with open(RESOLV_CONF_PATH, "r") as file1:
+            return file1.readline() == RESOLV_CONF_CONTENT.splitlines(True)[0]
+    except OSError:
+        return False
+
+
 def reset_resolvconf_to_default():
     subprocess.run(["chattr", "-i", "/etc/resolv.conf"])  # unblock file
     subprocess.run(["rm", "/etc/resolv.conf"])  # delete file
@@ -59,8 +67,11 @@ def apply_domain_filter_list(domain_list, is_allowlist, dns_servers):
 
 
 def clear_domain_filter_list():
-    # /etc/resolv.conf
-    reset_resolvconf_to_default()
+    # /etc/resolv.conf, only if we wrote it. This also runs at every daemon
+    # start, it shouldn't delete a resolv.conf the admin made and restart
+    # NetworkManager when no filter was applied.
+    if resolvconf_is_ours():
+        reset_resolvconf_to_default()
 
     # /etc/smartdns/smartdns.conf
     SmartdnsManager.remove_smartdns_config()

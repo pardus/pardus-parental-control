@@ -1,4 +1,5 @@
 import os
+import stat
 import subprocess
 
 PRIVILEGED_GROUP = "sudo"
@@ -37,18 +38,29 @@ def restrict_conf_file(filepath):
     restrict_desktop_file(filepath)
 
 
+def _restricted_by_us(filepath, mode):
+    # Clearing the filters runs for every application (also at every daemon
+    # start), so only revert files that look like restrict_*() left them.
+    # Others (setuid binaries, apps owned by a user in /opt...) stay as is.
+    try:
+        st = os.stat(filepath)
+    except OSError:
+        return False
+    return st.st_gid == PRIVILEGED_GROUP_ID and stat.S_IMODE(st.st_mode) == mode
+
+
 # Unrestrict
 def unrestrict_conf_file(filepath):
     unrestrict_desktop_file(filepath)  # same permission style
 
 
 def unrestrict_desktop_file(filepath):
-    if filepath:
+    if filepath and _restricted_by_us(filepath, 0o640):
         os.chmod(filepath, 0o644)  # rw-r--r--
         os.chown(filepath, 0, 0)  # root:root
 
 
 def unrestrict_bin_file(filepath):
-    if filepath:
+    if filepath and _restricted_by_us(filepath, 0o750):
         os.chmod(filepath, 0o755)  # rwxr-xr-x
         os.chown(filepath, 0, 0)  # root:root
